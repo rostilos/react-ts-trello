@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assignedCards Card[]    @relation("CardAssignees")
+  comments      Comment[] // inverse side of Comment.author
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sections Section[]
+}
+
+model Section {
+  id        String  @id @default(cuid())
+  title     String
+  canDelete Boolean @default(true)
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  cards Card[]
+}
+
+model Card {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @default("")
+  // Store priority as string since SQLite provider (in libsql/sqlite variants) may not support enums
+  priority    String
+  executor    String   @default("")
+  createdAt   DateTime @default(now())
+
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId String
+
+  comments Comment[]
+
+  // Many-to-many assignees
+  assignees User[] @relation("CardAssignees")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  text      String
+  createdAt DateTime @default(now())
+
+  card   Card   @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  cardId String
+
+  // author of comment
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId String
+}
